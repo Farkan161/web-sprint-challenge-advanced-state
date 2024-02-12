@@ -1,39 +1,93 @@
-// ❗ You don't need to add extra action creators to achieve MVP
-export function moveClockwise() { }
+import axios from 'axios';
+import { RESET_FORM } from "./action-types";
 
-export function moveCounterClockwise() { }
+export function moveClockwise() {
+  return { type: 'MOVE_CLOCKWISE' };
+}
 
-export function selectAnswer() { }
+export function moveCounterClockwise() {
+  return { type: 'MOVE_COUNTERCLOCKWISE' };
+}
 
-export function setMessage() { }
+export function selectAnswer(selectedAnswer) {
+  return { type: 'SET_SELECTED_ANSWER', payload: selectedAnswer };
+}
 
-export function setQuiz() { }
+export function setMessage(message) {
+  return { type: 'SET_INFO_MESSAGE', payload: message };
+}
 
-export function inputChange() { }
+export function setQuiz(quiz) {
+  return { type: 'SET_QUIZ_INTO_STATE', payload: quiz };
+}
 
-export function resetForm() { }
+export function inputChange(inputChange) {
+  console.log(inputChange)
+  return { type: 'INPUT_CHANGE', payload: inputChange };
+}
 
-// ❗ Async action creators
+export function resetForm() {
+  return { type: RESET_FORM };
+}
+
+// Async action creators
 export function fetchQuiz() {
   return function (dispatch) {
-    // First, dispatch an action to reset the quiz state (so the "Loading next quiz..." message can display)
-    // On successful GET:
-    // - Dispatch an action to send the obtained quiz to its state
-  }
+    {
+      
+
+      axios.get('http://localhost:9000/api/quiz/next')
+        .then((res) => {
+          console.log(res.data)
+          dispatch(setQuiz(res.data));
+        })
+        .catch((error) => {
+          console.error('Error fetching quiz:', error);
+          dispatch({ type: 'FETCH_QUIZ_FAILURE' });
+        });
+    }
+  };
 }
-export function postAnswer() {
+export function postAnswer(quizId, answerId) {
   return function (dispatch) {
-    // On successful POST:
-    // - Dispatch an action to reset the selected answer state
-    // - Dispatch an action to set the server message to state
-    // - Dispatch the fetching of the next quiz
-  }
+    dispatch(resetForm());
+    dispatch({ type: 'POST_ANSWER_REQUEST' });
+
+    axios
+      .post('http://localhost:9000/api/quiz/answer', { quiz_id: quizId, answer_id: answerId })
+      .then((res) => {
+        dispatch(selectAnswer(null));
+        dispatch(setMessage(res.data.message))
+      })
+      .catch((error) => {
+        console.error('Error posting answer:', error);
+        dispatch({ type: 'POST_ANSWER_FAILURE' });
+      }). finally (( ) => {dispatch(fetchQuiz())})
+  };
 }
-export function postQuiz() {
+
+
+export function postQuiz(newQuiz) {
+ 
   return function (dispatch) {
-    // On successful POST:
-    // - Dispatch the correct message to the the appropriate state
-    // - Dispatch the resetting of the form
-  }
+    dispatch(resetForm());
+    dispatch({ type: 'POST_QUIZ_REQUEST'});
+
+    const payload = {
+      question_text: newQuiz.newQuestion,
+      true_answer_text: newQuiz.newTrueAnswer,
+      false_answer_text:newQuiz.newFalseAnswer,
+    };
+
+    axios
+      .post('http://localhost:9000/api/quiz/new', payload)
+      .then((res) => {
+        dispatch({ type: 'POST_QUIZ_SUCCESS', payload: res.data });
+        dispatch(setMessage('Quiz successfully created!'));
+      })
+      .catch((error) => {
+        console.error('Error posting quiz:', error);
+        dispatch({ type: 'POST_QUIZ_FAILURE' });
+      });
+  };
 }
-// ❗ On promise rejections, use log statements or breakpoints, and put an appropriate error message in state

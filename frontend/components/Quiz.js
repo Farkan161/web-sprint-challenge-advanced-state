@@ -1,34 +1,53 @@
-import React from 'react'
+import React, { useEffect } from 'react';
+import { connect } from 'react-redux';
+import * as actionCreators from '../state/action-creators';
 
-export default function Quiz(props) {
+function Quiz(props) {
+  const { quizData, fetchQuiz, selectAnswer, selectedAnswer, postAnswer } = props;
+
+  useEffect(() => {
+    !quizData && fetchQuiz();
+  }, []);
+
+  const handleSubmit = () => {
+    if (selectedAnswer !== null && quizData) {
+      postAnswer(quizData.quiz_id, selectedAnswer);
+    }
+  };
+
   return (
     <div id="wrapper">
-      {
-        // quiz already in state? Let's use that, otherwise render "Loading next quiz..."
-        true ? (
-          <>
-            <h2>What is a closure?</h2>
-
-            <div id="quizAnswers">
-              <div className="answer selected">
-                A function
+      {!quizData ? (
+        'Loading next quiz...'
+      ) : (
+        <>
+          <h2>{quizData.question}</h2>
+          <div id="quizAnswers">
+            {quizData.answers.map((answer, index) => (
+              <div
+                key={index}
+                className={`answer ${selectedAnswer === answer.answer_id ? 'selected' : ''}`}
+                onClick={() => selectAnswer(answer.answer_id)}
+              >
+                {answer.text}
                 <button>
-                  SELECTED
+                  {selectedAnswer === answer.answer_id ? 'SELECTED' : 'Select'}
                 </button>
               </div>
-
-              <div className="answer">
-                An elephant
-                <button>
-                  Select
-                </button>
-              </div>
-            </div>
-
-            <button id="submitAnswerBtn">Submit answer</button>
-          </>
-        ) : 'Loading next quiz...'
-      }
+            ))}
+          </div>
+          <button id="submitAnswerBtn" onClick={handleSubmit} disabled={selectedAnswer === null}>Submit</button>
+        </>
+      )}
     </div>
-  )
+  );
 }
+
+const mapStateToProps = state => {
+  return {
+    quizData: state.quiz,
+    selectedAnswer: state.selectedAnswer
+  };
+};
+
+export default connect(mapStateToProps, actionCreators)(Quiz);
